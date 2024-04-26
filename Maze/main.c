@@ -16,6 +16,7 @@
  *WHITE Wire                    P9.0 (A17)
  *RED WIRE                      VCC (5V)
  *Black Wire                    GND
+ *testing :)
  */
 
 #include <stdint.h>
