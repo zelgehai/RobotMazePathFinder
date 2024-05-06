@@ -36,7 +36,7 @@
 
 #define CONTROLLER_1    1
 
-//#define DEBUG_ACTIVE    1
+#define DEBUG_ACTIVE    1
 
 // Initialize constant distance values (in mm)
 #define TOO_CLOSE_DISTANCE  200
@@ -304,11 +304,11 @@ int main(void)
         pmod_color_data = PMOD_Color_Get_RGBC();
         PMOD_Color_Calibrate(pmod_color_data, &calibration_data);
         pmod_color_data = PMOD_Color_Normalize_Calibration(pmod_color_data, calibration_data);
-        printf("r=%04x g=%04x b=%04x\r\n", pmod_color_data.red, pmod_color_data.green, pmod_color_data.blue);
+        //printf("r=%04x g=%04x b=%04x\r\n", pmod_color_data.red, pmod_color_data.green, pmod_color_data.blue);
         redvalue = pmod_color_data.red / 256;
         greenvalue = pmod_color_data.green / 256;
         bluevalue = pmod_color_data.blue / 256;
-        printf("red: %d Green: %d Blue %d", redvalue, greenvalue, bluevalue);
+        //printf("red: %d Green: %d Blue %d", redvalue, greenvalue, bluevalue);
         if((redvalue <= 90) && (greenvalue <= 130) && (bluevalue >= 180) && (bluevalue <= 240) ){
             printf("detected color blue!");
             Nokia5110_SetCursor(0,4);
@@ -328,7 +328,9 @@ int main(void)
         //Clock_Delay1ms(1000);
 
 #ifdef DEBUG_ACTIVE
-        //printf("Left: %d mm | Center: %d mm | Right: %d mm\n", Converted_Distance_Left, Converted_Distance_Center, Converted_Distance_Right);
+        if((mscounter % 500) == 0){
+        printf("Left: %d mm | Center: %d mm | Right: %d mm\n", Converted_Distance_Left, Converted_Distance_Center, Converted_Distance_Right);
+        }
         //Clock_Delay1us(500);
 #endif
     }
