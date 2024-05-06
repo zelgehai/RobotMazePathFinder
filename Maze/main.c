@@ -36,12 +36,12 @@
 
 #define CONTROLLER_1    1
 
-#define DEBUG_ACTIVE    1
+//#define DEBUG_ACTIVE    1
 
 // Initialize constant distance values (in mm)
 #define TOO_CLOSE_DISTANCE  200
 #define TOO_FAR_DISTANCE    400
-#define DESIRED_DISTANCE    250
+#define DESIRED_DISTANCE    200
 
 // Initialize constant PWM duty cycle values for the motors
 #define PWM_NOMINAL         2500
@@ -58,6 +58,10 @@ uint32_t Filtered_Distance_Right;
 int32_t Converted_Distance_Left;
 int32_t Converted_Distance_Center;
 int32_t Converted_Distance_Right;
+
+uint32_t redvalue =0;
+uint32_t greenvalue =0;
+uint32_t bluevalue = 0;
 
 // Declare global variable used to store the amount of error
 int32_t Error;
@@ -104,7 +108,13 @@ void Sample_Analog_Distance_Sensor()
     Converted_Distance_Center = Analog_Distance_Sensor_Calibrate(Filtered_Distance_Center);
     Converted_Distance_Right = Analog_Distance_Sensor_Calibrate(Filtered_Distance_Right);
 }
-
+void Handle_Red(){
+        printf("detected color Red!");
+        Nokia5110_SetCursor(0,4);
+        Nokia5110_OutString("RedDetected");
+        Motor_Stop();
+        Clock_Delay1ms(5000);
+    }
 /**
  * @brief This function updates the PWM duty cycle values for the motors based on the measured distance values.
  *
@@ -116,53 +126,34 @@ void Sample_Analog_Distance_Sensor()
  *
  * @return None
  */
+void Turn_Right() {
+    Motor_Forward(3500, 3500);  // Set both motors to high speed
+    Clock_Delay1ms(200);  // Delay for 1000 milliseconds (1 second)
+    Motor_Stop();  // Stop the motors after 1 second
+}
+void Turn_Left() {
+    Motor_Left(3500, 3500);  // Set both motors to high speed
+    Clock_Delay1ms(700);  // Delay for 1000 milliseconds (1 second)
+    Motor_Stop();  // Stop the motors after 1 second
+}
+
 
 void Controller_1()
 {
-    // Check if both the left and right distance sensor readings are greater than the desired distance
-        if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
-        {
-            // Calculate the set point as the average of the left and right sensor distance readings
-            Set_Point = (Converted_Distance_Left + Converted_Distance_Right) / 2;
-        }
-        else
-        {
-            // If at least one distance sensor reading is below the desired distance, assign the set point to the desired distance
-            Set_Point = DESIRED_DISTANCE;
-        }
 
-        // Calculate the error based on the sensor readings
-        if (Converted_Distance_Left < Converted_Distance_Right)
-        {
-            Error = Converted_Distance_Left - Set_Point;
-        }
-        else
-        {
-            Error = Set_Point - Converted_Distance_Right;
-        }
-
-        // Calculate the new duty cycle for the right motor based on the error and proportional constant (Kp)
-        Duty_Cycle_Right = PWM_NOMINAL - (Kp * Error);
-
-        // Calculate the new duty cycle for the left motor based on the error and proportional constant (Kp)
-        Duty_Cycle_Left  = PWM_NOMINAL + (Kp * Error);
-
-        // Ensure that the duty cycle for the right motor does not go below the minimum PWM value
-        if (Duty_Cycle_Right < PWM_MIN) Duty_Cycle_Right = PWM_MIN;
-
-        // Ensure that the duty cycle for the right motor does not exceed the maximum PWM value
-        if (Duty_Cycle_Right > PWM_MAX) Duty_Cycle_Right = PWM_MAX;
-
-        // Ensure that the duty cycle for the left motor does not go below the minimum PWM value
-        if (Duty_Cycle_Left  < PWM_MIN) Duty_Cycle_Left  = PWM_MIN;
-
-        // Ensure that the duty cycle for the left motor does not exceed the maximum PWM value
-        if (Duty_Cycle_Left  > PWM_MAX) Duty_Cycle_Left  = PWM_MAX;
+    //First Algorithm [ Right Wall Follower ]
 
 #ifndef DEBUG_ACTIVE
     // Apply the updated PWM duty cycle values to the motors
-    if((Converted_Distance_Center > DESIRED_DISTANCE) && (Converted_Distance_Center < 800)){
-        Motor_Forward(Duty_Cycle_Left, Duty_Cycle_Right);
+    if((Converted_Distance_Center > DESIRED_DISTANCE) && (Converted_Distance_Right < DESIRED_DISTANCE)){
+        //printf("MOVING FOWARD: [RWALL Detected + NO Obstruction]");
+        Motor_Forward(3500, 3500);
+    }else if(Converted_Distance_Right > DESIRED_DISTANCE){
+        //printf("NO RIGHT WALL DETECTED:");
+        Motor_Right(2000,2000);
+    }else if((Converted_Distance_Center <= DESIRED_DISTANCE) && (Converted_Distance_Right < DESIRED_DISTANCE)){
+        //IF wall Infront and wall to the right, turn left
+        Turn_Left();
     }else{
         Motor_Stop();
     }
@@ -218,6 +209,7 @@ void Timer_A1_Periodic_Task(void)
 {
     Sample_Analog_Distance_Sensor();
 }
+
 
 int main(void)
 {
@@ -295,28 +287,24 @@ int main(void)
     Nokia5110_SetCursor(0, 3);
     Nokia5110_OutUDec(counter);
 
-            uint32_t redvalue =0;
-            uint32_t greenvalue =0;
-            uint32_t bluevalue = 0;
+
     while(1)
     {
         //PMOD COLOR:
         pmod_color_data = PMOD_Color_Get_RGBC();
         PMOD_Color_Calibrate(pmod_color_data, &calibration_data);
         pmod_color_data = PMOD_Color_Normalize_Calibration(pmod_color_data, calibration_data);
-        //printf("r=%04x g=%04x b=%04x\r\n", pmod_color_data.red, pmod_color_data.green, pmod_color_data.blue);
+        printf("r=%04x g=%04x b=%04x\r\n", pmod_color_data.red, pmod_color_data.green, pmod_color_data.blue);
+        Clock_Delay1ms(50);
         redvalue = pmod_color_data.red / 256;
         greenvalue = pmod_color_data.green / 256;
         bluevalue = pmod_color_data.blue / 256;
         //printf("red: %d Green: %d Blue %d", redvalue, greenvalue, bluevalue);
-        if((redvalue <= 90) && (greenvalue <= 130) && (bluevalue >= 180) && (bluevalue <= 240) ){
-            printf("detected color blue!");
-            Nokia5110_SetCursor(0,4);
-            Nokia5110_OutString("BlueDetected");
-         break;
+        if((redvalue >= 180) && (greenvalue <= 80) && (bluevalue >= 80)){
+            Handle_Red();
         }
 
-        Clock_Delay1ms(50); //50 ms delay
+        //Clock_Delay1ms(50); //50 ms delay
 
         mscounter = mscounter + 50;
         //LCD Screen:
