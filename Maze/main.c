@@ -31,10 +31,10 @@
 #include "inc/Timer_A1_Interrupt.h"
 #include "inc/LPF.h"
 #include "inc/Analog_Distance_Sensors.h"
+#include "inc/Nokia5110_LCD.h" //New
+#include "inc/PMOD_Color.h" //NEW
 
-//#define CONTROLLER_1    1
-//#define CONTROLLER_2    1
-#define CONTROLLER_3    1
+#define CONTROLLER_1    1
 
 #define DEBUG_ACTIVE    1
 
@@ -116,55 +116,8 @@ void Sample_Analog_Distance_Sensor()
  *
  * @return None
  */
+
 void Controller_1()
-{
-    // Check if both the left and right distance sensor readings are greater than the desired distance
-    if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
-    {
-        // Calculate the set point as the average of the left and right sensor distance readings
-        Set_Point = (Converted_Distance_Left + Converted_Distance_Right) / 2;
-    }
-    else
-    {
-        // If at least one distance sensor reading is below the desired distance, assign the set point to the desired distance
-        Set_Point = DESIRED_DISTANCE;
-    }
-
-    // Calculate the error based on the sensor readings
-    if (Converted_Distance_Left < Converted_Distance_Right)
-    {
-        Error = Converted_Distance_Left - Set_Point;
-    }
-    else
-    {
-        Error = Set_Point - Converted_Distance_Right;
-    }
-
-    // Calculate the new duty cycle for the right motor based on the error and proportional constant (Kp)
-    Duty_Cycle_Right = PWM_NOMINAL + (Kp * Error);
-
-    // Calculate the new duty cycle for the left motor based on the error and proportional constant (Kp)
-    Duty_Cycle_Left  = PWM_NOMINAL - (Kp * Error);
-
-    // Ensure that the duty cycle for the right motor does not go below the minimum PWM value
-    if (Duty_Cycle_Right < PWM_MIN) Duty_Cycle_Right = PWM_MIN;
-
-    // Ensure that the duty cycle for the right motor does not exceed the maximum PWM value
-    if (Duty_Cycle_Right > PWM_MAX) Duty_Cycle_Right = PWM_MAX;
-
-    // Ensure that the duty cycle for the left motor does not go below the minimum PWM value
-    if (Duty_Cycle_Left  < PWM_MIN) Duty_Cycle_Left  = PWM_MIN;
-
-    // Ensure that the duty cycle for the left motor does not exceed the maximum PWM value
-    if (Duty_Cycle_Left  > PWM_MAX) Duty_Cycle_Left  = PWM_MAX;
-
-#ifndef DEBUG_ACTIVE
-    // Apply the updated PWM duty cycle values to the motors
-    Motor_Forward(Duty_Cycle_Left, Duty_Cycle_Right);
-#endif
-}
-
-void Controller_2()
 {
     // Check if both the left and right distance sensor readings are greater than the desired distance
         if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
@@ -217,85 +170,18 @@ void Controller_2()
 
 }
 
-/**
- * @brief
- *
- * @param None
- *
- * @return None
- */
-void Controller_3()
-{
-    // Check if both the left and right distance sensor readings are greater than the desired distance
-            if ((Converted_Distance_Left > DESIRED_DISTANCE) && (Converted_Distance_Right > DESIRED_DISTANCE))
-            {
-                // Calculate the set point as the average of the left and right sensor distance readings
-                Set_Point = (Converted_Distance_Left + Converted_Distance_Right) / 2;
-            }
-            else
-            {
-                // If at least one distance sensor reading is below the desired distance, assign the set point to the desired distance
-                Set_Point = DESIRED_DISTANCE;
-            }
-
-            // Calculate the error based on the sensor readings
-            if (Converted_Distance_Left < Converted_Distance_Right)
-            {
-                Error = Converted_Distance_Left - Set_Point;
-            }
-            else
-            {
-                Error = Set_Point - Converted_Distance_Right;
-            }
-
-            // Calculate the new duty cycle for the right motor based on the error and proportional constant (Kp)
-            Duty_Cycle_Right = PWM_NOMINAL - (Kp * Error);
-
-            // Calculate the new duty cycle for the left motor based on the error and proportional constant (Kp)
-            Duty_Cycle_Left  = PWM_NOMINAL + (Kp * Error);
-
-            // Ensure that the duty cycle for the right motor does not go below the minimum PWM value
-            if (Duty_Cycle_Right < PWM_MIN) Duty_Cycle_Right = PWM_MIN;
-
-            // Ensure that the duty cycle for the right motor does not exceed the maximum PWM value
-            if (Duty_Cycle_Right > PWM_MAX) Duty_Cycle_Right = PWM_MAX;
-
-            // Ensure that the duty cycle for the left motor does not go below the minimum PWM value
-            if (Duty_Cycle_Left  < PWM_MIN) Duty_Cycle_Left  = PWM_MIN;
-
-            // Ensure that the duty cycle for the left motor does not exceed the maximum PWM value
-            if (Duty_Cycle_Left  > PWM_MAX) Duty_Cycle_Left  = PWM_MAX;
-
-    #ifndef DEBUG_ACTIVE
-        // Apply the updated PWM duty cycle values to the motors
-        if((Converted_Distance_Center >= DESIRED_DISTANCE) && (Converted_Distance_Center < 800)){
-            Motor_Forward(Duty_Cycle_Left, Duty_Cycle_Right);
-        }else if (Converted_Distance_Center < (DESIRED_DISTANCE - 50)){
-            Motor_Backward(Duty_Cycle_Left, Duty_Cycle_Right);
-        }
-        else{
-            Motor_Stop();
-        }
-    #endif
-
-}
-
 
 /**
  * @brief This function is the handler for the SysTick periodic interrupt with a rate of 100 Hz.
  *
  * The SysTick_Handler generates a periodic interrupt that calls a specific controller function based on the selected
  * active configuration. Only one of the options can be defined at a time: CONTROLLER_1, CONTROLLER_2, or CONTROLLER_3.
- *
- * @param None
- *
- * @return None
  */
 void SysTick_Handler(void)
 {
 #if defined CONTROLLER_1
 
-    //Controller_1();
+    Controller_1();
 
 #elif defined CONTROLLER_2
     #if defined CONTROLLER_1 || CONTROLLER_3
@@ -311,7 +197,7 @@ void SysTick_Handler(void)
     #endif
 
     // Your function for Task 2 goes here (Controller_3)
-    Controller_3();
+    //Controller_3();
 
 #else
     #error "Define either one of the options: CONTROLLER_1, CONTROLLER_2, or CONTROLLER_3."
@@ -340,6 +226,8 @@ int main(void)
     uint32_t Raw_A17;
     uint32_t Raw_A14;
     uint32_t Raw_A16;
+    uint32_t counter =0; //New
+    uint32_t mscounter =0; // NEW
 
     // Initialize the 48 MHz Clock
     Clock_Init48MHz();
@@ -352,6 +240,13 @@ int main(void)
 
     // Initialize the DC motors
     Motor_Init();
+
+    // Initialize the PMOD Color module
+    PMOD_Color_Init(); //NEW
+
+    // Indicate that the PMDO Color module has been initialized and powered on
+    printf("PMOD COLOR has been initialized and powered on.\n");
+
 
     // Initialize motor duty cycle values
     Duty_Cycle_Left  = PWM_NOMINAL;
@@ -368,6 +263,9 @@ int main(void)
     LPF_Init2(Raw_A14, 64);
     LPF_Init3(Raw_A16, 64);
 
+    // Initialize the Nokia5110 LCD
+    Nokia5110_Init();   //NEW
+
     // Initialize SysTick periodic interrupt with a rate of 100 Hz
     SysTick_Interrupt_Init(SYSTICK_INT_NUM_CLK_CYCLES, SYSTICK_INT_PRIORITY);
 
@@ -377,11 +275,61 @@ int main(void)
     // Enable the interrupts used by Timer A1 and other modules
     EnableInterrupts();
 
+    // Display the PMOD Color Device ID
+    printf("PMOD Color Device ID: 0x%02X\n", PMOD_Color_Get_Device_ID());
+    // Declare structs for both raw and normalized PMOD Color data
+    PMOD_Color_Data pmod_color_data;
+    PMOD_Calibration_Data calibration_data;
+
+    pmod_color_data = PMOD_Color_Get_RGBC();
+    calibration_data = PMOD_Color_Init_Calibration_Data(pmod_color_data);
+    Clock_Delay1us(2400);
+
+    // Clear the Nokia5110 buffer and the LCD - NEW
+    Nokia5110_ClearBuffer();
+    Nokia5110_Clear();
+
+    Nokia5110_SetCursor(0, 2);
+    Nokia5110_OutString("Counter");
+
+    Nokia5110_SetCursor(0, 3);
+    Nokia5110_OutUDec(counter);
+
+            uint32_t redvalue =0;
+            uint32_t greenvalue =0;
+            uint32_t bluevalue = 0;
     while(1)
     {
+        //PMOD COLOR:
+        pmod_color_data = PMOD_Color_Get_RGBC();
+        PMOD_Color_Calibrate(pmod_color_data, &calibration_data);
+        pmod_color_data = PMOD_Color_Normalize_Calibration(pmod_color_data, calibration_data);
+        printf("r=%04x g=%04x b=%04x\r\n", pmod_color_data.red, pmod_color_data.green, pmod_color_data.blue);
+        redvalue = pmod_color_data.red / 256;
+        greenvalue = pmod_color_data.green / 256;
+        bluevalue = pmod_color_data.blue / 256;
+        printf("testing red: %d testing Green: %d Testing Blue %d", redvalue, greenvalue, bluevalue);
+        if((redvalue <= 90) && (greenvalue <= 130) && (bluevalue >= 180) && (bluevalue <= 240) ){
+            printf("detected color blue!");
+            Nokia5110_SetCursor(0,4);
+            Nokia5110_OutString("BlueDetected");
+         break;
+        }
+
+        Clock_Delay1ms(50); //50 ms delay
+
+        mscounter = mscounter + 50;
+        //LCD Screen:
+        if((mscounter % 1000) == 0){
+            counter = counter +1;
+        }
+        Nokia5110_SetCursor(0, 3);
+        Nokia5110_OutUDec(counter);
+        //Clock_Delay1ms(1000);
+
 #ifdef DEBUG_ACTIVE
-        printf("Left: %d mm | Center: %d mm | Right: %d mm\n", Converted_Distance_Left, Converted_Distance_Center, Converted_Distance_Right);
-        Clock_Delay1us(500);
+        //printf("Left: %d mm | Center: %d mm | Right: %d mm\n", Converted_Distance_Left, Converted_Distance_Center, Converted_Distance_Right);
+        //Clock_Delay1us(500);
 #endif
     }
 }
