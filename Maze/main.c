@@ -36,7 +36,7 @@
 
 #define CONTROLLER_1    1
 
-#define DEBUG_ACTIVE    1
+//#define DEBUG_ACTIVE    1
 
 // Initialize constant distance values (in mm)
 #define TOO_CLOSE_DISTANCE  200
@@ -308,7 +308,7 @@ int main(void)
         redvalue = pmod_color_data.red / 256;
         greenvalue = pmod_color_data.green / 256;
         bluevalue = pmod_color_data.blue / 256;
-        printf("testing red: %d testing Green: %d Testing Blue %d", redvalue, greenvalue, bluevalue);
+        printf("red: %d Green: %d Blue %d", redvalue, greenvalue, bluevalue);
         if((redvalue <= 90) && (greenvalue <= 130) && (bluevalue >= 180) && (bluevalue <= 240) ){
             printf("detected color blue!");
             Nokia5110_SetCursor(0,4);
