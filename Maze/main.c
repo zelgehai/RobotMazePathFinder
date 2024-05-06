@@ -62,6 +62,10 @@ int32_t Converted_Distance_Right;
 uint32_t redvalue =0;
 uint32_t greenvalue =0;
 uint32_t bluevalue = 0;
+uint32_t RouteOne =0;
+uint32_t RouteTwo = 0;
+uint32_t RouteOneTime = 0;
+uint32_t RouteTwoTime =0;
 
 // Declare global variable used to store the amount of error
 int32_t Error;
@@ -127,14 +131,14 @@ void Handle_Red(){
  * @return None
  */
 void Turn_Right() {
-    Motor_Forward(3500, 3500);  // Set both motors to high speed
-    Clock_Delay1ms(200);  // Delay for 1000 milliseconds (1 second)
-    Motor_Stop();  // Stop the motors after 1 second
+    Motor_Right(3500, 3500);  // Set both motors to high speed
+    Clock_Delay1ms(500);  // Delay for 1000 milliseconds (1 second)
+    Motor_Stop();  // Stop the motors after .5 second
 }
 void Turn_Left() {
     Motor_Left(3500, 3500);  // Set both motors to high speed
-    Clock_Delay1ms(700);  // Delay for 1000 milliseconds (1 second)
-    Motor_Stop();  // Stop the motors after 1 second
+    Clock_Delay1ms(500);  // Delay for 1000 milliseconds (1 second)
+    Motor_Stop();  // Stop the motors after .5 second
 }
 
 
@@ -143,22 +147,41 @@ void Controller_1()
 
     //First Algorithm [ Right Wall Follower ]
 
+
 #ifndef DEBUG_ACTIVE
-    // Apply the updated PWM duty cycle values to the motors
-    if((Converted_Distance_Center > DESIRED_DISTANCE) && (Converted_Distance_Right < DESIRED_DISTANCE)){
-        //printf("MOVING FOWARD: [RWALL Detected + NO Obstruction]");
-        Motor_Forward(3500, 3500);
-    }else if(Converted_Distance_Right > DESIRED_DISTANCE){
-        //printf("NO RIGHT WALL DETECTED:");
-        Motor_Right(2000,2000);
-    }else if((Converted_Distance_Center <= DESIRED_DISTANCE) && (Converted_Distance_Right < DESIRED_DISTANCE)){
-        //IF wall Infront and wall to the right, turn left
-        Turn_Left();
+    if(RouteOne == 0){
+        if((Converted_Distance_Center < DESIRED_DISTANCE) && (Converted_Distance_Right <= DESIRED_DISTANCE ) && ( Converted_Distance_Left <= DESIRED_DISTANCE)){
+            Motor_Stop();
+            RouteOne = 1;
+        }else if((Converted_Distance_Center > DESIRED_DISTANCE) && (Converted_Distance_Right < DESIRED_DISTANCE)){
+            Motor_Forward(3500, 3500);
+        }else if(Converted_Distance_Right > DESIRED_DISTANCE){
+            Motor_Right(2000,2000);
+        }else if((Converted_Distance_Center <= DESIRED_DISTANCE) && (Converted_Distance_Right < DESIRED_DISTANCE)){
+            Turn_Left();
+        }else{
+            Motor_Stop();
+        }
+    }else if(RouteOne == 2){
+        //Left Wall following;
+        if((Converted_Distance_Center < DESIRED_DISTANCE) && (Converted_Distance_Left <= DESIRED_DISTANCE ) && ( Converted_Distance_Right <= DESIRED_DISTANCE)){
+                    Motor_Stop();
+                    RouteOne = 3;
+                    RouteTwo = 1;
+                }else if((Converted_Distance_Center > DESIRED_DISTANCE) && (Converted_Distance_Left < DESIRED_DISTANCE)){
+                    Motor_Forward(3500, 3500);
+                }else if(Converted_Distance_Left > DESIRED_DISTANCE){
+                    Motor_Left(2000,2000);
+                }else if((Converted_Distance_Center <= DESIRED_DISTANCE) && (Converted_Distance_Left < DESIRED_DISTANCE)){
+                    Turn_Right();
+                }else{
+                    Motor_Stop();
+                }
     }else{
         Motor_Stop();
+        printf("Done With ALl Routes");
     }
 #endif
-
 }
 
 
@@ -281,10 +304,10 @@ int main(void)
     Nokia5110_ClearBuffer();
     Nokia5110_Clear();
 
-    Nokia5110_SetCursor(0, 2);
-    Nokia5110_OutString("Counter");
+    Nokia5110_SetCursor(0, 4);
+    Nokia5110_OutString("Counter:");
 
-    Nokia5110_SetCursor(0, 3);
+    Nokia5110_SetCursor(0, 5);
     Nokia5110_OutUDec(counter);
 
 
@@ -295,13 +318,13 @@ int main(void)
         PMOD_Color_Calibrate(pmod_color_data, &calibration_data);
         pmod_color_data = PMOD_Color_Normalize_Calibration(pmod_color_data, calibration_data);
         printf("r=%04x g=%04x b=%04x\r\n", pmod_color_data.red, pmod_color_data.green, pmod_color_data.blue);
-        Clock_Delay1ms(50);
         redvalue = pmod_color_data.red / 256;
         greenvalue = pmod_color_data.green / 256;
         bluevalue = pmod_color_data.blue / 256;
-        //printf("red: %d Green: %d Blue %d", redvalue, greenvalue, bluevalue);
-        if((redvalue >= 180) && (greenvalue <= 80) && (bluevalue >= 80)){
-            Handle_Red();
+        printf("red: %d Green: %d Blue %d", redvalue, greenvalue, bluevalue);
+        Clock_Delay1ms(50);
+        if((redvalue >= 130) && (greenvalue <= 80) && (bluevalue >= 80)){
+            //Handle_Red();
         }
 
         //Clock_Delay1ms(50); //50 ms delay
@@ -311,8 +334,54 @@ int main(void)
         if((mscounter % 1000) == 0){
             counter = counter +1;
         }
-        Nokia5110_SetCursor(0, 3);
+
+        if(RouteTwo == 2){  //When Route is done print this on last lines:
+            if(RouteOneTime < RouteTwoTime){
+                Nokia5110_SetCursor(0, 5);
+                Nokia5110_OutString("Route1 Wins!");
+                Clock_Delay1ms(50);
+                Nokia5110_SetCursor(0, 4);
+                Nokia5110_OutString("-----------");
+            }else if(RouteTwoTime < RouteOneTime){
+                Nokia5110_SetCursor(0, 5);
+                Nokia5110_OutString("Route2 Wins!");
+                Clock_Delay1ms(50);
+                Nokia5110_SetCursor(0, 4);
+                Nokia5110_OutString("-----------");
+            }else{
+                Nokia5110_SetCursor(0, 5);
+                Nokia5110_OutString("Tie");
+                Clock_Delay1ms(50);
+                Nokia5110_SetCursor(0, 4);
+                Nokia5110_OutString("-----------");
+            }
+        }else{
+        Nokia5110_SetCursor(0, 5);
         Nokia5110_OutUDec(counter);
+        }
+
+        if(RouteOne == 1){
+            RouteOneTime = counter;
+            Nokia5110_SetCursor(0,0);
+            Nokia5110_OutString("RouteOne =");
+            Clock_Delay1ms(50);
+            Nokia5110_SetCursor(0,1);
+            Nokia5110_OutUDec(RouteOneTime);
+            Clock_Delay1ms(10000);// wait 10 seconds before next algorithm
+            counter = 0;
+            RouteOne = 2;
+        }else if(RouteTwo == 1){
+            RouteTwoTime = counter;
+            Nokia5110_SetCursor(0,2);
+            Nokia5110_OutString("RouteTwo =");
+            Clock_Delay1ms(50);
+            Nokia5110_SetCursor(0,3);
+            Nokia5110_OutUDec(RouteTwoTime);
+            Clock_Delay1ms(500);
+            counter =0;
+            RouteOne = 3;
+            RouteTwo = 2;
+        }
         //Clock_Delay1ms(1000);
 
 #ifdef DEBUG_ACTIVE
